@@ -4,8 +4,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 def lambda_handler(event, context):
-    
-
     logger.info('Init')
     client = boto3.client('cognito-idp')
     
@@ -16,7 +14,7 @@ def lambda_handler(event, context):
     user_pool_id = body['user_pool_id']
     logger.info('Init 2')
     try:
-        client.admin_set_user_password(
+        client.admin_set_user_password( 
                 UserPoolId=user_pool_id,
                 Username=username,
                 Password=password,

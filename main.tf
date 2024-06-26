@@ -159,23 +159,34 @@ resource "aws_api_gateway_resource" "cotacoes_resource" {
   path_part   = "cotacoes"
 }
 
-# Method and Integration for /cotacoes
-resource "aws_api_gateway_method" "cotacoes_method" {
+# Resource for /getCotacoes
+resource "aws_api_gateway_resource" "get_cotacoes_resource" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "getCotacoes"
+}
+
+# Method and Integration for /getCotacoes
+resource "aws_api_gateway_method" "get_cotacoes_method" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.cotacoes_resource.id
-  http_method   = "GET"
+  resource_id   = aws_api_gateway_resource.get_cotacoes_resource.id
+  http_method   = "POST"
   authorization = "COGNITO_USER_POOLS"
   authorizer_id = aws_api_gateway_authorizer.cognito_authorizer.id
+
+  request_parameters = {
+    "method.request.header.Authorization" = true
+  }
 
   depends_on = [
     aws_api_gateway_authorizer.cognito_authorizer
   ]
 }
 
-resource "aws_api_gateway_integration" "cotacoes_integration" {
+resource "aws_api_gateway_integration" "get_cotacoes_integration" {
   rest_api_id             = aws_api_gateway_rest_api.api.id
-  resource_id             = aws_api_gateway_resource.cotacoes_resource.id
-  http_method             = aws_api_gateway_method.cotacoes_method.http_method
+  resource_id             = aws_api_gateway_resource.get_cotacoes_resource.id
+  http_method             = aws_api_gateway_method.get_cotacoes_method.http_method
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:343236792564:function:bf-cotacao-dev-app/invocations"
@@ -191,11 +202,10 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     aws_api_gateway_integration.retaguarda_integration,
     aws_api_gateway_method.auth_method,
     aws_api_gateway_integration.auth_integration,
-    aws_api_gateway_method.cotacoes_method,
-    aws_api_gateway_integration.cotacoes_integration,
+    aws_api_gateway_method.get_cotacoes_method,
+    aws_api_gateway_integration.get_cotacoes_integration,
   ]
 }
-
 # IAM Role for Lambda
 resource "aws_iam_role" "iam_for_lambda" {
   name = "iam_for_lambda"
@@ -236,6 +246,17 @@ resource "aws_lambda_permission" "allow_api_gateway_to_invoke_retaguarda" {
   principal     = "apigateway.amazonaws.com"
 
   # Provide the source ARN to restrict the permission to this API Gateway
+  source_arn = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
+}
+
+# Permissão para API Gateway invocar a função Lambda bf-cotacao-dev-app
+resource "aws_lambda_permission" "allow_api_gateway_to_invoke_cotacao" {
+  statement_id  = "AllowAPIGatewayInvokeCotacao"
+  action        = "lambda:InvokeFunction"
+  function_name = "bf-cotacao-dev-app"
+  principal     = "apigateway.amazonaws.com"
+
+  # Forneça o ARN da fonte para restringir a permissão a este API Gateway
   source_arn = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }
 
