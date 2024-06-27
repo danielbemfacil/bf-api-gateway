@@ -4,80 +4,6 @@ provider "aws" {
 
 data "aws_caller_identity" "current" {}
 
-# Cognito User Pool
-resource "aws_cognito_user_pool" "user_pool" {
-  name = "bemfacil_user_pool"
-  
-  schema {
-    attribute_data_type = "String"
-    name                = "ApiKey"
-    required            = false
-    mutable             = true
-  }
-
-  schema {
-    attribute_data_type = "String"
-    name                = "EstCpfCnpj"
-    required            = false
-    mutable             = true
-  }
-
-  password_policy {
-    minimum_length    = 8
-    require_lowercase = true
-    require_numbers   = true
-    require_symbols   = true
-    require_uppercase = true
-  }
-
-  auto_verified_attributes = ["email"]
-}
-
-# Cognito User Pool Client
-resource "aws_cognito_user_pool_client" "user_pool_client" {
-  name         = "bemfacil_client"
-  user_pool_id = aws_cognito_user_pool.user_pool.id
-  
-  explicit_auth_flows = [
-    "ALLOW_USER_PASSWORD_AUTH",
-    "ALLOW_REFRESH_TOKEN_AUTH"
-  ]
-
-  allowed_oauth_flows = []
-  allowed_oauth_scopes = []
-  generate_secret = false
-
-  write_attributes = [
-    "custom:ApiKey",
-    "custom:EstCpfCnpj"
-  ]
-
-  read_attributes = [
-    "custom:ApiKey",
-    "custom:EstCpfCnpj"
-  ]
-}
-
-# Cognito Domain
-resource "aws_cognito_user_pool_domain" "user_pool_domain" {
-  domain       = "bemfacil-auth"
-  user_pool_id = aws_cognito_user_pool.user_pool.id
-}
-
-# Create a user with custom attributes
-resource "aws_cognito_user" "daniel" {
-  user_pool_id = aws_cognito_user_pool.user_pool.id
-  username     = "daniel.nascimento@bemfacil.com.br"
-  attributes = {
-    "email"             = "daniel.nascimento@bemfacil.com.br"
-    "custom:ApiKey"     = "7bf6beb8-8588-4266-a9f0-669b7c31cb4f"
-    "custom:EstCpfCnpj" = "09104373430"
-  }
-  temporary_password = "Guaratuba109@"
-  force_alias_creation = false
-  message_action = "SUPPRESS" # Do not send invitation message
-}
-
 # API Gateway
 resource "aws_api_gateway_rest_api" "api" {
   name        = "BemFacilAPI"
@@ -109,7 +35,7 @@ resource "aws_api_gateway_authorizer" "cognito_authorizer" {
   name                    = "cognito_authorizer"
   type                    = "COGNITO_USER_POOLS"
   rest_api_id             = aws_api_gateway_rest_api.api.id
-  provider_arns           = [aws_cognito_user_pool.user_pool.arn]
+  provider_arns           = ["arn:aws:cognito-idp:us-east-1:343236792564:userpool/us-east-1_mNR1Y3m0o"]
   identity_source         = "method.request.header.Authorization"
 }
 
@@ -315,8 +241,8 @@ resource "aws_lambda_function" "auth_handler" {
   filename = "lambdas/auth_handler.zip"
   environment {
     variables = {
-      COGNITO_USER_POOL_ID = aws_cognito_user_pool.user_pool.id
-      COGNITO_CLIENT_ID    = aws_cognito_user_pool_client.user_pool_client.id
+      COGNITO_USER_POOL_ID = "us-east-1_mNR1Y3m0o"
+      COGNITO_CLIENT_ID    = "6lllp8j3m40a3rd6dee0gcbm7d"
       LOG_GROUP_NAME       = aws_cloudwatch_log_group.auth_handler_log_group.name
     }
   }
@@ -353,7 +279,7 @@ resource "aws_iam_policy" "lambda_cognito_policy" {
           "cognito-idp:AdminSetUserPassword"
         ],
         "Effect": "Allow",
-        "Resource": "arn:aws:cognito-idp:${var.region}:${data.aws_caller_identity.current.account_id}:userpool/${aws_cognito_user_pool.user_pool.id}"
+        "Resource": "arn:aws:cognito-idp:${var.region}:${data.aws_caller_identity.current.account_id}:userpool/us-east-1_mNR1Y3m0o"
       }
     ]
   })
