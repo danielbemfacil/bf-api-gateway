@@ -6,8 +6,8 @@ data "aws_caller_identity" "current" {}
 
 # API Gateway
 resource "aws_api_gateway_rest_api" "api" {
-  name        = "BemFacilAPI"
-  description = "API Gateway for BemFacil services"
+  name        = "bemfacil-integration-access-api-gateway"
+  description = "Api Gateway para os serviços complementares da BF"
 }
 
 # Resource for /retaguarda
@@ -61,6 +61,43 @@ resource "aws_api_gateway_integration" "retaguarda_integration" {
   uri                     = aws_lambda_function.retaguarda_handler.invoke_arn
 }
 
+
+# Resource for /cotacoes
+resource "aws_api_gateway_resource" "cotacoes_resource" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "cotacoes"
+}
+
+# Resource for /getCotacoes
+resource "aws_api_gateway_resource" "get_cotacoes_resource" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_resource.cotacoes_resource.id
+  path_part   = "list"
+}
+
+# Method and Integration for /list
+resource "aws_api_gateway_method" "get_cotacoes_method" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.get_cotacoes_resource.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.cognito_authorizer.id
+
+  depends_on = [
+    aws_api_gateway_authorizer.cognito_authorizer
+  ]
+}
+
+resource "aws_api_gateway_integration" "get_cotacoes_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.get_cotacoes_resource.id
+  http_method             = aws_api_gateway_method.get_cotacoes_method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.cotacoes_handler.invoke_arn
+}
+
 # Method and Integration for /auth
 resource "aws_api_gateway_method" "auth_method" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
@@ -78,45 +115,7 @@ resource "aws_api_gateway_integration" "auth_integration" {
   uri                     = aws_lambda_function.auth_handler.invoke_arn
 }
 
-# Resource for /cotacoes
-resource "aws_api_gateway_resource" "cotacoes_resource" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
-  path_part   = "cotacoes"
-}
 
-# Resource for /getCotacoes
-resource "aws_api_gateway_resource" "get_cotacoes_resource" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
-  path_part   = "getCotacoes"
-}
-
-# Method and Integration for /getCotacoes
-resource "aws_api_gateway_method" "get_cotacoes_method" {
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.get_cotacoes_resource.id
-  http_method   = "POST"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.cognito_authorizer.id
-
-  request_parameters = {
-    "method.request.header.Authorization" = true
-  }
-
-  depends_on = [
-    aws_api_gateway_authorizer.cognito_authorizer
-  ]
-}
-
-resource "aws_api_gateway_integration" "get_cotacoes_integration" {
-  rest_api_id             = aws_api_gateway_rest_api.api.id
-  resource_id             = aws_api_gateway_resource.get_cotacoes_resource.id
-  http_method             = aws_api_gateway_method.get_cotacoes_method.http_method
-  integration_http_method = "POST"
-  type                    = "AWS_PROXY"
-  uri                     = "arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:343236792564:function:bf-cotacao-dev-app/invocations"
-}
 
 # API Gateway Deployment
 resource "aws_api_gateway_deployment" "api_deployment" {
@@ -179,7 +178,7 @@ resource "aws_lambda_permission" "allow_api_gateway_to_invoke_retaguarda" {
 resource "aws_lambda_permission" "allow_api_gateway_to_invoke_cotacao" {
   statement_id  = "AllowAPIGatewayInvokeCotacao"
   action        = "lambda:InvokeFunction"
-  function_name = "bf-cotacao-dev-app"
+  function_name = aws_lambda_function.cotacoes_handler.function_name
   principal     = "apigateway.amazonaws.com"
 
   # Forneça o ARN da fonte para restringir a permissão a este API Gateway
@@ -220,6 +219,29 @@ resource "aws_lambda_function" "retaguarda_handler" {
     variables = {
       GX_CLIENT_ID     = "26e92aef-68b0-4228-9df4-298c9d94847d"
       LOG_GROUP_NAME   = aws_cloudwatch_log_group.retaguarda_handler_log_group.name
+    }
+  }
+}
+
+
+# CloudWatch Log Group for Cotacoes Handler
+resource "aws_cloudwatch_log_group" "cotacoes_handler_log_group" {
+  name              = "/aws/lambda/cotacoes_handler"
+  retention_in_days = 14
+}
+
+# Lambda Function for Retaguarda Handler
+resource "aws_lambda_function" "cotacoes_handler" {
+  function_name = "cotacoes_handler"
+  runtime       = "python3.10"
+  handler       = "cotacoes_handler.lambda_handler"
+  role          = aws_iam_role.iam_for_lambda.arn
+  timeout       = 30
+
+  filename = "lambdas/cotacoes_handler.zip"
+  environment {
+    variables = {
+      LOG_GROUP_NAME   = aws_cloudwatch_log_group.cotacoes_handler_log_group.name
     }
   }
 }

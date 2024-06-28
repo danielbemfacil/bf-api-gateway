@@ -126,3 +126,13 @@ lambdas/jwt_validator/env/
 lambdas/retaguarda_handler/env/
 lambdas/retaguarda_handler/jwt
 lambdas/retaguarda_handler/PyJWT-2.8.0.dist-info
+lambdas/cotacoes_handler/env/
+lambdas/cotacoes_handler/jwt
+lambdas/cotacoes_handler/PyJWT-2.8.0.dist-info
+lambdas/cotacoes_handler/bin/
+lambdas/cotacoes_handler/certifi-2024.6.2.dist-info/
+lambdas/cotacoes_handler/certifi/
+lambdas/cotacoes_handler/charset_normalizer-3.3.2.dist-info/
+lambdas/cotacoes_handler/idna-3.7.dist-info/
+lambdas/cotacoes_handler/idna/
+lambdas/cotacoes_handler/requests-2.32.3.dist-info/
