@@ -32,11 +32,11 @@ resource "aws_api_gateway_resource" "auth_resource" {
 
 # Cognito Authorizer
 resource "aws_api_gateway_authorizer" "cognito_authorizer" {
-  name                    = "cognito_authorizer"
-  type                    = "COGNITO_USER_POOLS"
-  rest_api_id             = aws_api_gateway_rest_api.api.id
-  provider_arns           = ["arn:aws:cognito-idp:us-east-1:343236792564:userpool/us-east-1_mNR1Y3m0o"]
-  identity_source         = "method.request.header.Authorization"
+  name            = "cognito_authorizer"
+  type            = "COGNITO_USER_POOLS"
+  rest_api_id     = aws_api_gateway_rest_api.api.id
+  provider_arns   = ["arn:aws:cognito-idp:us-east-1:343236792564:userpool/us-east-1_mNR1Y3m0o"]
+  identity_source = "method.request.header.Authorization"
 }
 
 # Method and Integration for /retaguarda/transacoes
@@ -151,6 +151,30 @@ resource "aws_iam_role" "iam_for_lambda" {
 EOF
 }
 
+resource "aws_iam_policy" "lambda_ec2_policy" {
+  name        = "lambda_ec2_policy"
+  description = "Policy for Lambda to manage network interfaces"
+  policy = jsonencode({
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": [
+          "ec2:CreateNetworkInterface",
+          "ec2:DescribeNetworkInterfaces",
+          "ec2:DeleteNetworkInterface"
+        ],
+        "Resource": "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "attach_lambda_ec2_policy" {
+  role       = aws_iam_role.iam_for_lambda.name
+  policy_arn = aws_iam_policy.lambda_ec2_policy.arn
+}
+
 # Attach policy to Lambda role to allow API Gateway to invoke it
 resource "aws_lambda_permission" "allow_api_gateway_to_invoke" {
   statement_id  = "AllowAPIGatewayInvoke"
@@ -161,7 +185,7 @@ resource "aws_lambda_permission" "allow_api_gateway_to_invoke" {
   # Provide the source ARN to restrict the permission to this API Gateway
   source_arn = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 
-  depends_on = [ aws_lambda_function.auth_handler ]
+  depends_on = [aws_lambda_function.auth_handler]
 }
 
 resource "aws_lambda_permission" "allow_api_gateway_to_invoke_retaguarda" {
@@ -193,6 +217,10 @@ resource "aws_lambda_function" "jwt_validator" {
   role          = aws_iam_role.iam_for_lambda.arn
 
   filename = "lambdas/jwt_validator.zip"
+  vpc_config {
+    security_group_ids = ["sg-0c264fcb1a0494784"]
+    subnet_ids         = ["subnet-0bf69d5c218b573a5", "subnet-0687b1954ba83c33a"]
+  }
   environment {
     variables = {
       GX_CLIENT_ID = "26e92aef-68b0-4228-9df4-298c9d94847d"
@@ -215,10 +243,14 @@ resource "aws_lambda_function" "retaguarda_handler" {
   timeout       = 30
 
   filename = "lambdas/retaguarda_handler.zip"
+  vpc_config {
+    security_group_ids = ["sg-0c264fcb1a0494784"]
+    subnet_ids         = ["subnet-0bf69d5c218b573a5", "subnet-0687b1954ba83c33a"]
+  }
   environment {
     variables = {
-      GX_CLIENT_ID     = "26e92aef-68b0-4228-9df4-298c9d94847d"
-      LOG_GROUP_NAME   = aws_cloudwatch_log_group.retaguarda_handler_log_group.name
+      GX_CLIENT_ID   = "26e92aef-68b0-4228-9df4-298c9d94847d"
+      LOG_GROUP_NAME = aws_cloudwatch_log_group.retaguarda_handler_log_group.name
     }
   }
 }
@@ -239,9 +271,13 @@ resource "aws_lambda_function" "cotacoes_handler" {
   timeout       = 30
 
   filename = "lambdas/cotacoes_handler.zip"
+  vpc_config {
+    security_group_ids = ["sg-0c264fcb1a0494784"]
+    subnet_ids         = ["subnet-0bf69d5c218b573a5", "subnet-0687b1954ba83c33a"]
+  }
   environment {
     variables = {
-      LOG_GROUP_NAME   = aws_cloudwatch_log_group.cotacoes_handler_log_group.name
+      LOG_GROUP_NAME = aws_cloudwatch_log_group.cotacoes_handler_log_group.name
     }
   }
 }
@@ -274,16 +310,16 @@ resource "aws_lambda_function" "auth_handler" {
 resource "aws_iam_policy" "lambda_logging_policy" {
   name        = "lambda_logging_policy"
   description = "IAM policy for logging from a lambda"
-  policy      = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
       {
-        "Action": [
+        "Action" : [
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ],
-        "Effect": "Allow",
-        "Resource": "arn:aws:logs:*:*:log-group:/aws/lambda/*"
+        "Effect" : "Allow",
+        "Resource" : "arn:aws:logs:*:*:log-group:/aws/lambda/*"
       }
     ]
   })
@@ -293,15 +329,15 @@ resource "aws_iam_policy" "lambda_logging_policy" {
 resource "aws_iam_policy" "lambda_cognito_policy" {
   name        = "lambda_cognito_policy"
   description = "IAM policy for Cognito actions"
-  policy      = jsonencode({
-    "Version": "2012-10-17",
-    "Statement": [
+  policy = jsonencode({
+    "Version" : "2012-10-17",
+    "Statement" : [
       {
-        "Action": [
+        "Action" : [
           "cognito-idp:AdminSetUserPassword"
         ],
-        "Effect": "Allow",
-        "Resource": "arn:aws:cognito-idp:${var.region}:${data.aws_caller_identity.current.account_id}:userpool/us-east-1_mNR1Y3m0o"
+        "Effect" : "Allow",
+        "Resource" : "arn:aws:cognito-idp:${var.region}:${data.aws_caller_identity.current.account_id}:userpool/us-east-1_mNR1Y3m0o"
       }
     ]
   })
