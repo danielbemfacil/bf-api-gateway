@@ -1,0 +1,10 @@
+environment = "prod"
+regionaws = "us-east-1"
+apiname = "bemfacil-integration-access-api-gateway"
+apidescription = "Api Gateway para os serviços complementares da BF"
+userpoolarn="arn:aws:cognito-idp:us-east-1:343236792564:userpool/us-east-1_mNR1Y3m0o"
+sg_ids=["sg-07d7f4cad2ee323b7"]
+subnets_ids=["subnet-0fce94dad57e60c79", "subnet-09503b996aac18eb8"]
+gx_client_id = "26e92aef-68b0-4228-9df4-298c9d94847d"
+cognito_user_pool_id = "us-east-1_mNR1Y3m0o"
+cognito_client_id = "6lllp8j3m40a3rd6dee0gcbm7d"

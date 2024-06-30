@@ -1,0 +1,10 @@
+environment = "stage"
+regionaws = "us-east-1"
+apiname = "bemfacil-integration-access-api-gateway"
+apidescription = "Api Gateway para os serviços complementares da BF"
+userpoolarn="arn:aws:cognito-idp:us-east-1:343236792564:userpool/us-east-1_mNR1Y3m0o"
+sg_ids=["sg-0c264fcb1a0494784"]
+subnets_ids=["subnet-0bf69d5c218b573a5", "subnet-0687b1954ba83c33a"]
+gx_client_id = "26e92aef-68b0-4228-9df4-298c9d94847d"
+cognito_user_pool_id = "us-east-1_mNR1Y3m0o"
+cognito_client_id = "6lllp8j3m40a3rd6dee0gcbm7d"
