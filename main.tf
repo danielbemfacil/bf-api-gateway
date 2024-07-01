@@ -39,6 +39,32 @@ resource "aws_api_gateway_authorizer" "bf_integration_access_authorizer" {
   identity_source = "method.request.header.Authorization"
 }
 
+resource "aws_api_gateway_model" "card_transaction_request_model" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  name        = "CardTransactionRequestModel"
+  content_type = "application/json"
+  schema = <<EOF
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "CardTransactionRequestModel",
+  "type": "object",
+  "properties": {
+    "DataInicio": {
+      "type": "string"
+    },
+    "DataFinal": {
+      "type": "string"
+    },
+    "NSU": {
+      "type": "string"
+    }
+  },
+  "required": ["DataInicio", "DataFinal"]
+}
+EOF
+}
+
+
 # Method and Integration for /retaguarda/transacoes
 resource "aws_api_gateway_method" "card_transaction_method" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
@@ -51,6 +77,11 @@ resource "aws_api_gateway_method" "card_transaction_method" {
   request_parameters = {
     "method.request.header.x-api-key" = true
   }
+
+  request_models = {
+    "application/json" = "CardTransactionRequestModel"
+  }
+
 
   depends_on = [
     aws_api_gateway_authorizer.bf_integration_access_authorizer
@@ -68,7 +99,21 @@ resource "aws_api_gateway_integration" "card_transaction_integration" {
   request_parameters = {
     "integration.request.header.x-api-key" = "method.request.header.x-api-key"
   }
+
+  request_templates = {
+    "application/json" = <<EOF
+#set($inputRoot = $input.path('$'))
+{
+  "DataInicio": "$inputRoot.DataInicio",
+  "DataFinal": "$inputRoot.DataFinal",
+  "NSU": "$inputRoot.NSU"
 }
+EOF
+  }
+
+}
+
+
 
 
 # Resource for /cotacoes
