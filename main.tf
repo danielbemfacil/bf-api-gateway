@@ -46,6 +46,11 @@ resource "aws_api_gateway_method" "card_transaction_method" {
   http_method   = "POST"
   authorization = "COGNITO_USER_POOLS"
   authorizer_id = aws_api_gateway_authorizer.bf_integration_access_authorizer.id
+  api_key_required = true
+
+  request_parameters = {
+    "method.request.header.x-api-key" = true
+  }
 
   depends_on = [
     aws_api_gateway_authorizer.bf_integration_access_authorizer
@@ -59,6 +64,10 @@ resource "aws_api_gateway_integration" "card_transaction_integration" {
   integration_http_method = "POST"
   type                    = "AWS_PROXY"
   uri                     = aws_lambda_function.card_transactions_handler.invoke_arn
+
+  request_parameters = {
+    "integration.request.header.x-api-key" = "method.request.header.x-api-key"
+  }
 }
 
 

@@ -136,3 +136,5 @@ lambdas/cotacoes_handler/charset_normalizer-3.3.2.dist-info/
 lambdas/cotacoes_handler/idna-3.7.dist-info/
 lambdas/cotacoes_handler/idna/
 lambdas/cotacoes_handler/requests-2.32.3.dist-info/
+lambdas/card_transactions_handler/
+
