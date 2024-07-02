@@ -22,15 +22,28 @@ def lambda_handler(event, context):
 
         logger.info(f'fim da decodificacao do token, cliente identificado: {est_cpf_cnpj}')
 
+        query_string_parameters = event.get('queryStringParameters', {})
+        
+        logger.info(f'Pegou o querystring {json.dumps(query_string_parameters)}')
+
+        if not query_string_parameters:
+            return {
+            'statusCode': 400,
+            'body': json.dumps({
+                "ret_cod": 5,
+                "ret_dsc": "Dados para consulta inválidos"
+            })
+            }
+
         # Construa o payload para a API de retaguarda
         payload = {
             "ApiKey": api_key,
             "EstCpfCnpj": est_cpf_cnpj,
-            "DataInicio": json.loads(event['body']).get('DataInicio', ''),
-            "DataFinal": json.loads(event['body']).get('DataFinal', ''),
-            "NSU": json.loads(event['body']).get('NSU', '')
+            "DataInicio": query_string_parameters.get('DataInicio', ''),
+            "DataFinal": query_string_parameters.get('DataFinal', ''),
+            "NSU": query_string_parameters.get('NSU', '')
         }
-        
+                
         logger.info(f'Inicio do request para o retaguarda')
 
         headers = {
@@ -46,13 +59,26 @@ def lambda_handler(event, context):
         )
 
         logger.info(f'Evento finalizado')
-
+        ret_cod = response.json().get('ret_cod', 0)
+        if ret_cod:
+            if ret_cod == 6:
+                logger.error('Registro não encontrado')
+                return {
+                    'statusCode': 404,
+                    'body': json.dumps(response.json())
+                }
+            logger.error(f'Erro encontrado no retaguarda {json.dumps(response.json())}')
+            return {
+                'statusCode': 400,
+                'body': json.dumps(response.json())
+            }    
+        logger.info(f'Consulta realizada com sucesso')
         return {
-            'statusCode': response.status_code,
+            'statusCode': 200,
             'body': json.dumps(response.json())
         }
     except Exception as e:
-        logger.error(f'erro encontrato no handler: {str(e)}')
+        logger.error(f'erro encontrado no handler: {str(e)}')
         return {
             'statusCode': 500,
             'body': str(e)
@@ -65,7 +91,11 @@ def lambda_handler(event, context):
 #                 "DataInicio": "20240415",
 #                 "DataFinal": "20240415",
 #                 "NSU": "123123123"
-#             }
+#             },
+#         'queryStringParameters':  {
+#             'DataInicio': '20240404',
+#             'DataFinal': '20240404'
+#         }
 #          },
 #         None
 #     )

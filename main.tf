@@ -66,26 +66,111 @@ EOF
 
 
 # Method and Integration for /retaguarda/transacoes
+resource "aws_api_gateway_model" "card_transaction_response_success_model" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  name        = "CardTransactionResponseSuccessModel"
+  content_type = "application/json"
+  schema = <<EOF
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "CardTransactionResponseSuccessModel",
+  "type": "object",
+  "properties": {
+    "Transacoes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "EstNomFan": { "type": "string" },
+          "VanTrnCodDsc": { "type": "string" },
+          "VanTrnDta": { "type": "string" },
+          "VanTrnHraFor": { "type": "string" },
+          "VanTrnNsu": { "type": "string" },
+          "VanTrnNsuOri": { "type": "string" },
+          "VanTrnNumAtz": { "type": "string" },
+          "VanTrnPosNumSer": { "type": "string" },
+          "VanTrnQtdPar": { "type": "integer" },
+          "VanTrnSeq": { "type": "string" },
+          "VanTrnStsDsc": { "type": "string" },
+          "VanTrnTipPrdDsc": { "type": "string" },
+          "VanTrnVlr": { "type": "string" }
+        }
+      }
+    },
+    "ret_cod": { "type": "integer" },
+    "ret_dsc": { "type": "string" }
+  },
+  "required": ["Transacoes", "ret_cod", "ret_dsc"]
+}
+EOF
+}
+
+resource "aws_api_gateway_model" "card_transaction_response_failure_model" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  name        = "CardTransactionResponseFailureModel"
+  content_type = "application/json"
+  schema = <<EOF
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "CardTransactionResponseFailureModel",
+  "type": "object",
+  "properties": {
+    "ret_cod": { "type": "integer" },
+    "ret_dsc": { "type": "string" }
+  },
+  "required": ["ret_cod", "ret_dsc"]
+}
+EOF
+}
+
 resource "aws_api_gateway_method" "card_transaction_method" {
   rest_api_id   = aws_api_gateway_rest_api.api.id
   resource_id   = aws_api_gateway_resource.card_transactions_resource.id
-  http_method   = "POST"
+  http_method   = "GET"
   authorization = "COGNITO_USER_POOLS"
   authorizer_id = aws_api_gateway_authorizer.bf_integration_access_authorizer.id
   api_key_required = true
 
   request_parameters = {
-    "method.request.header.x-api-key" = true
+    "method.request.header.x-api-key"           = true
+    "method.request.querystring.DataInicio"     = true
+    "method.request.querystring.DataFinal"      = true
+    "method.request.querystring.NSU"            = true
   }
-
-  request_models = {
-    "application/json" = "CardTransactionRequestModel"
-  }
-
 
   depends_on = [
     aws_api_gateway_authorizer.bf_integration_access_authorizer
   ]
+}
+
+resource "aws_api_gateway_method_response" "card_transaction_response_200" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.card_transactions_resource.id
+  http_method = aws_api_gateway_method.card_transaction_method.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Content-Type" = true
+  }
+
+  response_models = {
+    "application/json" = aws_api_gateway_model.card_transaction_response_success_model.name
+  }
+}
+
+resource "aws_api_gateway_method_response" "card_transaction_response_400" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.card_transactions_resource.id
+  http_method = aws_api_gateway_method.card_transaction_method.http_method
+  status_code = "400"
+
+  response_parameters = {
+    "method.response.header.Content-Type" = true
+  }
+
+  response_models = {
+    "application/json" = aws_api_gateway_model.card_transaction_response_failure_model.name
+  }
 }
 
 resource "aws_api_gateway_integration" "card_transaction_integration" {
@@ -97,23 +182,56 @@ resource "aws_api_gateway_integration" "card_transaction_integration" {
   uri                     = aws_lambda_function.card_transactions_handler.invoke_arn
 
   request_parameters = {
-    "integration.request.header.x-api-key" = "method.request.header.x-api-key"
+    "integration.request.header.x-api-key"             = "method.request.header.x-api-key"
+    "integration.request.querystring.DataInicio"       = "method.request.querystring.DataInicio"
+    "integration.request.querystring.DataFinal"        = "method.request.querystring.DataFinal"
+    "integration.request.querystring.NSU"              = "method.request.querystring.NSU"
   }
 
-  request_templates = {
-    "application/json" = <<EOF
-#set($inputRoot = $input.path('$'))
-{
-  "DataInicio": "$inputRoot.DataInicio",
-  "DataFinal": "$inputRoot.DataFinal",
-  "NSU": "$inputRoot.NSU"
+  depends_on = [
+    aws_api_gateway_method_response.card_transaction_response_200,
+    aws_api_gateway_method_response.card_transaction_response_400
+  ]
 }
-EOF
+
+resource "aws_api_gateway_integration_response" "card_transaction_integration_response_200" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.card_transactions_resource.id
+  http_method = aws_api_gateway_method.card_transaction_method.http_method
+  status_code = "200"
+  
+  response_parameters = {
+    "method.response.header.Content-Type" = "integration.response.header.Content-Type"
   }
 
+  response_templates = {
+    "application/json" = ""
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.card_transaction_integration
+  ]
 }
 
+resource "aws_api_gateway_integration_response" "card_transaction_integration_response_400" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.card_transactions_resource.id
+  http_method = aws_api_gateway_method.card_transaction_method.http_method
+  status_code = "400"
+  selection_pattern = ".*\"ret_cod\":5.*"
+  
+  response_parameters = {
+    "method.response.header.Content-Type" = "integration.response.header.Content-Type"
+  }
 
+  response_templates = {
+    "application/json" = ""
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.card_transaction_integration
+  ]
+}
 
 
 # Resource for /cotacoes
@@ -278,10 +396,7 @@ resource "aws_lambda_function" "card_transactions_handler" {
   timeout       = 30
 
   filename = "lambdas/card_transactions_handler.zip"
-  vpc_config {
-    security_group_ids = var.sg_ids
-    subnet_ids         = var.subnets_ids
-  }
+  
   environment {
     variables = {
       GX_CLIENT_ID   = var.gx_client_id
@@ -306,10 +421,7 @@ resource "aws_lambda_function" "exchange_handler" {
   timeout       = 30
 
   filename = "lambdas/exchange_handler.zip"
-  vpc_config {
-    security_group_ids = var.sg_ids
-    subnet_ids         = var.subnets_ids
-  }
+  
   environment {
     variables = {
       LOG_GROUP_NAME = aws_cloudwatch_log_group.exchange_handler_log_group.name
