@@ -9,20 +9,22 @@ logger.setLevel(logging.INFO)
 def lambda_handler(event, context):
     logger.info('Inicio do evento do retaguarda transacoes')
     try:
-        token = event['headers']['Authorization'].replace(' Bearer ', '')
-        token = token.replace('Bearer ', '')
-        gx_client_id = os.environ['GX_CLIENT_ID']
+        token: str = event['headers']['Authorization'].replace(' Bearer ', '')
+        token: str = token.replace('Bearer ', '')
+        gx_client_id: str = os.environ['GX_CLIENT_ID']
 
 
         logger.info('Inicio da decodificacao do token')
         # Valide o token JWT e extraia os dados necessários
-        decoded_token = jwt.decode(token, options={"verify_signature": False}, algorithms=["HS256"])
-        api_key = decoded_token.get('custom:ApiKey')
-        est_cpf_cnpj = decoded_token.get('custom:EstCpfCnpj')
+        decoded_token: dict = jwt.decode(token, options={"verify_signature": False}, algorithms=["HS256"])
+
+        
+        api_key: str = decoded_token.get('custom:ApiKey')
+        est_cpf_cnpj: str = decoded_token.get('custom:EstCpfCnpj')
 
         logger.info(f'fim da decodificacao do token, cliente identificado: {est_cpf_cnpj}')
 
-        query_string_parameters = event.get('queryStringParameters', {})
+        query_string_parameters: dict = event.get('queryStringParameters', {})
         
         logger.info(f'Pegou o querystring {json.dumps(query_string_parameters)}')
 
@@ -36,7 +38,7 @@ def lambda_handler(event, context):
             }
 
         # Construa o payload para a API de retaguarda
-        payload = {
+        payload: dict = {
             "ApiKey": api_key,
             "EstCpfCnpj": est_cpf_cnpj,
             "DataInicio": query_string_parameters.get('DataInicio', ''),
