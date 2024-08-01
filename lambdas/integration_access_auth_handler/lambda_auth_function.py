@@ -1,6 +1,8 @@
 import boto3
 import json
 import logging
+import os
+
 logger = logging.getLogger(__name__)
 
 def lambda_handler(event, context):
@@ -10,8 +12,8 @@ def lambda_handler(event, context):
     body = json.loads(event['body'])
     username = body['username']
     password = body['password']
-    client_id = body['client_id']
-    user_pool_id = body['user_pool_id']
+    client_id = os.environ['COGNITO_CLIENT_ID']
+    user_pool_id = os.environ['COGNITO_USER_POOL_ID']
     logger.info('Init 2')
     try:
         client.admin_set_user_password( 

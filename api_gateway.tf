@@ -1,5 +1,5 @@
 resource "aws_api_gateway_rest_api" "api" {
-  name        = "${var.apiname}-${var.environment}" 
+  name        = "${var.apiname}-${var.environment}"
   description = var.apidescription
 }
 
@@ -30,10 +30,10 @@ resource "aws_api_gateway_authorizer" "bf_integration_access_authorizer" {
 }
 
 resource "aws_api_gateway_model" "card_transaction_request_model" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  name        = "CardTransactionRequestModel"
+  rest_api_id  = aws_api_gateway_rest_api.api.id
+  name         = "CardTransactionRequestModel"
   content_type = "application/json"
-  schema = <<EOF
+  schema       = <<EOF
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "CardTransactionRequestModel",
@@ -55,10 +55,10 @@ EOF
 }
 
 resource "aws_api_gateway_model" "card_transaction_response_success_model" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  name        = "CardTransactionResponseSuccessModel"
+  rest_api_id  = aws_api_gateway_rest_api.api.id
+  name         = "CardTransactionResponseSuccessModel"
   content_type = "application/json"
-  schema = <<EOF
+  schema       = <<EOF
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "CardTransactionResponseSuccessModel",
@@ -94,10 +94,10 @@ EOF
 }
 
 resource "aws_api_gateway_model" "card_transaction_response_failure_model" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  name        = "CardTransactionResponseFailureModel"
+  rest_api_id  = aws_api_gateway_rest_api.api.id
+  name         = "CardTransactionResponseFailureModel"
   content_type = "application/json"
-  schema = <<EOF
+  schema       = <<EOF
 {
   "$schema": "http://json-schema.org/draft-04/schema#",
   "title": "CardTransactionResponseFailureModel",
@@ -112,18 +112,18 @@ EOF
 }
 
 resource "aws_api_gateway_method" "card_transaction_method" {
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.card_transactions_resource.id
-  http_method   = "GET"
-  authorization = "COGNITO_USER_POOLS"
-  authorizer_id = aws_api_gateway_authorizer.bf_integration_access_authorizer.id
+  rest_api_id      = aws_api_gateway_rest_api.api.id
+  resource_id      = aws_api_gateway_resource.card_transactions_resource.id
+  http_method      = "GET"
+  authorization    = "COGNITO_USER_POOLS"
+  authorizer_id    = aws_api_gateway_authorizer.bf_integration_access_authorizer.id
   api_key_required = true
 
   request_parameters = {
-    "method.request.header.x-api-key"           = true
-    "method.request.querystring.DataInicio"     = true
-    "method.request.querystring.DataFinal"      = true
-    "method.request.querystring.NSU"            = true
+    "method.request.header.x-api-key"       = true
+    "method.request.querystring.DataInicio" = true
+    "method.request.querystring.DataFinal"  = true
+    "method.request.querystring.NSU"        = true
   }
 
   depends_on = [
@@ -170,10 +170,10 @@ resource "aws_api_gateway_integration" "card_transaction_integration" {
   uri                     = aws_lambda_function.card_transactions_handler.invoke_arn
 
   request_parameters = {
-    "integration.request.header.x-api-key"             = "method.request.header.x-api-key"
-    "integration.request.querystring.DataInicio"       = "method.request.querystring.DataInicio"
-    "integration.request.querystring.DataFinal"        = "method.request.querystring.DataFinal"
-    "integration.request.querystring.NSU"              = "method.request.querystring.NSU"
+    "integration.request.header.x-api-key"       = "method.request.header.x-api-key"
+    "integration.request.querystring.DataInicio" = "method.request.querystring.DataInicio"
+    "integration.request.querystring.DataFinal"  = "method.request.querystring.DataFinal"
+    "integration.request.querystring.NSU"        = "method.request.querystring.NSU"
   }
 
   depends_on = [
@@ -187,7 +187,7 @@ resource "aws_api_gateway_integration_response" "card_transaction_integration_re
   resource_id = aws_api_gateway_resource.card_transactions_resource.id
   http_method = aws_api_gateway_method.card_transaction_method.http_method
   status_code = "200"
-  
+
   response_parameters = {
     "method.response.header.Content-Type" = "integration.response.header.Content-Type"
   }
@@ -202,12 +202,12 @@ resource "aws_api_gateway_integration_response" "card_transaction_integration_re
 }
 
 resource "aws_api_gateway_integration_response" "card_transaction_integration_response_400" {
-  rest_api_id = aws_api_gateway_rest_api.api.id
-  resource_id = aws_api_gateway_resource.card_transactions_resource.id
-  http_method = aws_api_gateway_method.card_transaction_method.http_method
-  status_code = "400"
+  rest_api_id       = aws_api_gateway_rest_api.api.id
+  resource_id       = aws_api_gateway_resource.card_transactions_resource.id
+  http_method       = aws_api_gateway_method.card_transaction_method.http_method
+  status_code       = "400"
   selection_pattern = ".*\"ret_cod\":5.*"
-  
+
   response_parameters = {
     "method.response.header.Content-Type" = "integration.response.header.Content-Type"
   }
@@ -271,7 +271,7 @@ resource "aws_api_gateway_integration" "auth_integration" {
 }
 
 resource "aws_api_gateway_domain_name" "api_domain" {
-  domain_name   = "api-${var.environment}.bemfacil.com.br"
+  domain_name     = "api-${var.environment}.bemfacil.com.br"
   certificate_arn = "arn:aws:acm:us-east-1:343236792564:certificate/6f94b2f7-7469-4bd5-b11a-65c4d9ef26d5"
 }
 
@@ -280,6 +280,77 @@ resource "aws_api_gateway_base_path_mapping" "api_mapping" {
   stage_name  = var.environment
   domain_name = aws_api_gateway_domain_name.api_domain.domain_name
 }
+
+
+resource "aws_api_gateway_resource" "vigilante_resource" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_rest_api.api.root_resource_id
+  path_part   = "vigilante"
+}
+
+resource "aws_api_gateway_resource" "search_resource" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_resource.vigilante_resource.id
+  path_part   = "search"
+}
+
+resource "aws_api_gateway_method" "search_method" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.search_resource.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.bf_integration_access_authorizer.id
+
+
+  depends_on = [
+    aws_api_gateway_authorizer.bf_integration_access_authorizer
+  ]
+}
+
+resource "aws_api_gateway_integration" "search_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.search_resource.id
+  http_method             = aws_api_gateway_method.search_method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.watchman_handler.invoke_arn
+
+
+
+  depends_on = [
+    aws_api_gateway_method.search_method
+  ]
+}
+
+
+resource "aws_api_gateway_method_response" "search_response_200" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.search_resource.id
+  http_method = aws_api_gateway_method.search_method.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Content-Type" = true
+  }
+
+}
+
+resource "aws_api_gateway_integration_response" "search_integration_response_200" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.search_resource.id
+  http_method = aws_api_gateway_method.search_method.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Content-Type" = "integration.response.header.Content-Type"
+  }
+
+
+  depends_on = [
+    aws_api_gateway_integration.search_integration
+  ]
+}
+
 
 resource "aws_api_gateway_deployment" "api_deployment" {
   rest_api_id = aws_api_gateway_rest_api.api.id
@@ -292,5 +363,9 @@ resource "aws_api_gateway_deployment" "api_deployment" {
     aws_api_gateway_integration.auth_integration,
     aws_api_gateway_method.get_exchange_method,
     aws_api_gateway_integration.get_exchange_integration,
+    aws_api_gateway_method.search_method,
+    aws_api_gateway_integration.search_integration,
+    aws_api_gateway_method_response.search_response_200,
+    aws_api_gateway_integration_response.search_integration_response_200
   ]
 }

@@ -100,6 +100,16 @@ resource "aws_lambda_permission" "allow_api_gateway_to_invoke_cotacao" {
   source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
 }
 
+
+resource "aws_lambda_permission" "allow_api_gateway_to_invoke_watchman" {
+  statement_id  = "AllowAPIGatewayInvokeWatchman"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.watchman_handler.function_name
+  principal     = "apigateway.amazonaws.com"
+  source_arn    = "${aws_api_gateway_rest_api.api.execution_arn}/*/*"
+  
+}
+
 resource "aws_iam_policy" "lambda_logging_policy" {
   name        = "${var.apiname}-lambda_logging_policy-${var.environment}"
   description = "IAM policy for logging from a lambda"
