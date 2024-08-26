@@ -15,6 +15,12 @@ resource "aws_api_gateway_resource" "card_transactions_resource" {
   path_part   = "card-transactions"
 }
 
+resource "aws_api_gateway_resource" "accreditation_resource" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_resource.customer_resource.id
+  path_part   = "accreditation"
+}
+
 resource "aws_api_gateway_resource" "auth_resource" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_rest_api.api.root_resource_id
@@ -53,6 +59,305 @@ resource "aws_api_gateway_model" "card_transaction_request_model" {
 }
 EOF
 }
+
+
+resource "aws_api_gateway_model" "accreditation_request_model" {
+  rest_api_id  = aws_api_gateway_rest_api.api.id
+  name         = "AccreditationRequestModel"
+  content_type = "application/json"
+  schema       = <<EOF
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "AccreditationRequestModel",
+  "type": "object",
+  "properties": {
+    "ApiKey": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "CnpjCpf": {
+      "type": "string",
+      "pattern": "^[0-9]{14}$"
+    },
+    "PessoaFisicaJuridica": {
+      "type": "string",
+      "enum": ["J", "F"]
+    },
+    "Credenciador": {
+      "type": "string",
+      "pattern": "^[0-9]{14}$"
+    },
+    "RazaoSocial": {
+      "type": "string"
+    },
+    "NomeFantasia": {
+      "type": "string"
+    },
+    "Mcc": {
+      "type": "string",
+      "pattern": "^[0-9]{4}$"
+    },
+    "Cnae": {
+      "type": "string",
+      "pattern": "^[0-9]{7}$"
+    },
+    "ResponsavelNome": {
+      "type": "string"
+    },
+    "Email": {
+      "type": "string",
+      "format": "email"
+    },
+    "DataAbertura": {
+      "type": "string",
+      "format": "date"
+    },
+    "Endereco": {
+      "type": "string"
+    },
+    "EnderecoNumero": {
+      "type": "string"
+    },
+    "EnderecoComplemento": {
+      "type": "string"
+    },
+    "EnderecoBairro": {
+      "type": "string"
+    },
+    "EnderecoCidade": {
+      "type": "string"
+    },
+    "EnderecoUF": {
+      "type": "string",
+      "pattern": "^[A-Z]{2}$"
+    },
+    "EnderecoCep": {
+      "type": "string",
+      "pattern": "^[0-9]{5}$"
+    },
+    "EnderecoCepCpl": {
+      "type": "string",
+      "pattern": "^[0-9]{3}$"
+    },
+    "TelefoneResDDD": {
+      "type": "string"
+    },
+    "TelefoneResNumero": {
+      "type": "string"
+    },
+    "TelefoneCelDDD": {
+      "type": "string"
+    },
+    "TelefoneCelNumero": {
+      "type": "string"
+    },
+    "TelefoneCmlDDD": {
+      "type": "string",
+      "pattern": "^[0-9]{2}$"
+    },
+    "TelefoneCmlNumero": {
+      "type": "string",
+      "pattern": "^[0-9]{8,9}$"
+    },
+    "Departamento": {
+      "type": "string"
+    },
+    "TabVenda": {
+      "type": "string"
+    },
+    "Socios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Ind": {
+            "type": "string",
+            "enum": ["U", "I"]
+          },
+          "SocNumSeq": {
+            "type": "integer"
+          },
+          "SocNomSoc": {
+            "type": "string"
+          },
+          "SocCep": {
+            "type": "integer"
+          },
+          "SocCepCpl": {
+            "type": "string"
+          },
+          "SocUF": {
+            "type": "string",
+            "pattern": "^[A-Z]{2}$"
+          },
+          "SocMun": {
+            "type": "string"
+          },
+          "SocBai": {
+            "type": "string"
+          },
+          "SocCplEnd": {
+            "type": "string"
+          },
+          "SocNumEnd": {
+            "type": "string"
+          },
+          "SocLog": {
+            "type": "string"
+          },
+          "SocDtaNsc": {
+            "type": "string",
+            "format": "date"
+          },
+          "SocCPF": {
+            "type": "string",
+            "pattern": "^[0-9]{11}$"
+          },
+          "SocDddTel": {
+            "type": "integer",
+            "minimum": 10,
+            "maximum": 99
+          },
+          "SocNumTel": {
+            "type": "integer"
+          }
+        },
+        "required": ["Ind", "SocNumSeq", "SocNomSoc", "SocCep", "SocUF", "SocMun", "SocBai", "SocNumEnd", "SocLog", "SocDtaNsc", "SocCPF", "SocDddTel", "SocNumTel"]
+      }
+    },
+    "Documentos": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "Ind": {
+            "type": "string",
+            "enum": ["I", "U"]
+          },
+          "EstCod": {
+            "type": "string"
+          },
+          "EstDocTipo": {
+            "type": "string"
+          },
+          "EstDocNumero": {
+            "type": "string"
+          },
+          "EstDocObservacao": {
+            "type": "string"
+          },
+          "EstDocImagemDocumento": {
+            "type": "string"
+          },
+          "EstDocSeq": {
+            "type": "string"
+          }
+        },
+        "required": ["Ind", "EstCod", "EstDocTipo", "EstDocNumero"]
+      }
+    },
+    "ContasBancarias": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "ContaBancariaInd": {
+            "type": "string",
+            "enum": ["I", "U"]
+          },
+          "ContaBancariaBanCod": {
+            "type": "string"
+          },
+          "ContaBancariaTipoConta": {
+            "type": "string",
+            "enum": ["C", "J"]
+          },
+          "ContaBancariaTipoOpe": {
+            "type": "string"
+          },
+          "ContaBancariaDocumento": {
+            "type": "string",
+            "pattern": "^[0-9]{14}$"
+          },
+          "ContaBancariaAgencia": {
+            "type": "string"
+          },
+          "ContaBancariaAgenciaDigito": {
+            "type": "string"
+          },
+          "ContaBancariaNumContaCorrente": {
+            "type": "string"
+          },
+          "ContaBancariaDigitoContaCorrente": {
+            "type": "string"
+          },
+          "ContaBancariaContaPrincipal": {
+            "type": "string",
+            "enum": ["S", "N"]
+          },
+          "ContaBancariaTipoChavePix": {
+            "type": "string",
+            "enum": ["01", "02", "03", "04"]
+          },
+          "ContaBancariaChavePix": {
+            "type": "string"
+          }
+        },
+        "required": ["ContaBancariaInd", "ContaBancariaBanCod", "ContaBancariaTipoConta", "ContaBancariaTipoOpe", "ContaBancariaDocumento", "ContaBancariaAgencia", "ContaBancariaNumContaCorrente", "ContaBancariaContaPrincipal"]
+      }
+    },
+    "Plano": {
+      "type": "integer"
+    }
+  },
+  "required": ["ApiKey", "CnpjCpf", "PessoaFisicaJuridica", "Credenciador", "RazaoSocial", "NomeFantasia", "Mcc", "Cnae", "ResponsavelNome", "Email", "DataAbertura", "Endereco", "EnderecoNumero", "EnderecoBairro", "EnderecoCidade", "EnderecoUF", "EnderecoCep", "EnderecoCepCpl", "TelefoneCmlDDD", "TelefoneCmlNumero", "Departamento", "TabVenda", "Socios", "Documentos", "ContasBancarias", "Plano"]
+}
+EOF
+}
+
+resource "aws_api_gateway_model" "accreditation_response_success_model" {
+  rest_api_id  = aws_api_gateway_rest_api.api.id
+  name         = "AccreditationResponseSuccessModel"
+  content_type = "application/json"
+  schema       = <<EOF
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "AccreditationResponseSuccessModel",
+  "type": "object",
+  "properties": {
+    "CodigoEstabelecimento": {
+      "type": "integer"
+    },
+    "ret_cod": {
+      "type": "integer"
+    },
+    "ret_dsc": {
+      "type": "string"
+    }
+  },
+  "required": ["CodigoEstabelecimento", "ret_cod", "ret_dsc"]
+}
+EOF
+}
+
+resource "aws_api_gateway_model" "accreditation_response_failure_model" {
+  rest_api_id  = aws_api_gateway_rest_api.api.id
+  name         = "AccreditationResponseFailureModel"
+  content_type = "application/json"
+  schema       = <<EOF
+{
+  "$schema": "http://json-schema.org/draft-04/schema#",
+  "title": "AccreditationResponseFailureModel",
+  "type": "object",
+  "properties": {
+    "ret_cod": { "type": "integer" },
+    "ret_dsc": { "type": "string" }
+  },
+  "required": ["ret_cod", "ret_dsc"]
+}
+EOF
+}
+
 
 resource "aws_api_gateway_model" "card_transaction_response_success_model" {
   rest_api_id  = aws_api_gateway_rest_api.api.id
@@ -109,6 +414,112 @@ resource "aws_api_gateway_model" "card_transaction_response_failure_model" {
   "required": ["ret_cod", "ret_dsc"]
 }
 EOF
+}
+
+
+resource "aws_api_gateway_method" "accreditation_method" {
+  rest_api_id      = aws_api_gateway_rest_api.api.id
+  resource_id      = aws_api_gateway_resource.accreditation_resource.id
+  http_method      = "GET"
+  authorization    = "COGNITO_USER_POOLS"
+  authorizer_id    = aws_api_gateway_authorizer.bf_integration_access_authorizer.id
+  api_key_required = true
+
+  request_parameters = {
+    "method.request.header.x-api-key"       = true
+  }
+
+  depends_on = [
+    aws_api_gateway_authorizer.bf_integration_access_authorizer
+  ]
+}
+
+resource "aws_api_gateway_method_response" "accreditation_response_200" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.accreditation_resource.id
+  http_method = aws_api_gateway_method.accreditation_method.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Content-Type" = true
+  }
+
+  response_models = {
+    "application/json" = aws_api_gateway_model.accreditation_response_success_model.name
+  }
+}
+
+
+resource "aws_api_gateway_method_response" "accreditation_response_400" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.accreditation_resource.id
+  http_method = aws_api_gateway_method.accreditation_method.http_method
+  status_code = "400"
+
+  response_parameters = {
+    "method.response.header.Content-Type" = true
+  }
+
+  response_models = {
+    "application/json" = aws_api_gateway_model.accreditation_response_failure_model.name
+  }
+}
+
+resource "aws_api_gateway_integration" "accreditation_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.accreditation_resource.id
+  http_method             = aws_api_gateway_method.accreditation_method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.accreditation_handler.invoke_arn
+
+  request_parameters = {
+    "integration.request.header.x-api-key"       = "method.request.header.x-api-key"
+  }
+
+  depends_on = [
+    aws_api_gateway_method_response.accreditation_response_200,
+    aws_api_gateway_method_response.accreditation_response_400
+  ]
+}
+
+resource "aws_api_gateway_integration_response" "accreditation_integration_response_200" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.accreditation_resource.id
+  http_method = aws_api_gateway_method.accreditation_method.http_method
+  status_code = "200"
+
+  response_parameters = {
+    "method.response.header.Content-Type" = "integration.response.header.Content-Type"
+  }
+
+  response_templates = {
+    "application/json" = ""
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.accreditation_integration
+  ]
+}
+
+resource "aws_api_gateway_integration_response" "accreditation_integration_response_400" {
+  rest_api_id       = aws_api_gateway_rest_api.api.id
+  resource_id       = aws_api_gateway_resource.accreditation_resource.id
+  http_method       = aws_api_gateway_method.accreditation_method.http_method
+  status_code       = "400"
+  selection_pattern = ".*\"ret_cod\":5.*"
+
+  response_parameters = {
+    "method.response.header.Content-Type" = "integration.response.header.Content-Type"
+  }
+
+  response_templates = {
+    "application/json" = ""
+  }
+
+  depends_on = [
+    aws_api_gateway_integration.accreditation_integration
+  ]
 }
 
 resource "aws_api_gateway_method" "card_transaction_method" {
@@ -359,6 +770,8 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on = [
     aws_api_gateway_method.card_transaction_method,
     aws_api_gateway_integration.card_transaction_integration,
+    aws_api_gateway_method.accreditation_method,
+    aws_api_gateway_integration.accreditation_integration,
     aws_api_gateway_method.auth_method,
     aws_api_gateway_integration.auth_integration,
     aws_api_gateway_method.get_exchange_method,
