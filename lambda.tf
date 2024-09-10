@@ -45,6 +45,28 @@ resource "aws_lambda_function" "card_transactions_handler" {
   }
 }
 
+resource "aws_cloudwatch_log_group" "accreditation_handler_log_group" {
+  name              = "/aws/lambda/accreditation_handler-${var.environment}"
+  retention_in_days = 14
+}
+
+resource "aws_lambda_function" "accreditation_handler" {
+  function_name = "accreditation_handler-${var.environment}"
+  runtime       = "python3.10"
+  handler       = "accreditation_handler.lambda_handler"
+  role          = aws_iam_role.iam_for_lambda.arn
+  timeout       = 30
+
+  filename = "lambdas/accreditation_handler.zip"
+  
+  environment {
+    variables = {
+      GX_CLIENT_ID   = var.gx_client_id
+      LOG_GROUP_NAME = aws_cloudwatch_log_group.card_transactions_handler_log_group.name
+    }
+  }
+}
+
 resource "aws_cloudwatch_log_group" "exchange_handler_log_group" {
   name              = "/aws/lambda/exchange_handler-${var.environment}"
   retention_in_days = 14

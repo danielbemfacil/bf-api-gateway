@@ -15,6 +15,12 @@ resource "aws_api_gateway_resource" "card_transactions_resource" {
   path_part   = "card-transactions"
 }
 
+resource "aws_api_gateway_resource" "accreditation_resource" {
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  parent_id   = aws_api_gateway_resource.customer_resource.id
+  path_part   = "new"
+}
+
 resource "aws_api_gateway_resource" "auth_resource" {
   rest_api_id = aws_api_gateway_rest_api.api.id
   parent_id   = aws_api_gateway_rest_api.api.root_resource_id
@@ -109,6 +115,27 @@ resource "aws_api_gateway_model" "card_transaction_response_failure_model" {
   "required": ["ret_cod", "ret_dsc"]
 }
 EOF
+}
+
+
+resource "aws_api_gateway_method" "accreditation_method" {
+  rest_api_id   = aws_api_gateway_rest_api.api.id
+  resource_id   = aws_api_gateway_resource.accreditation_resource.id
+  http_method   = "POST"
+  authorization = "COGNITO_USER_POOLS"
+  authorizer_id = aws_api_gateway_authorizer.bf_integration_access_authorizer.id
+  depends_on = [
+    aws_api_gateway_authorizer.bf_integration_access_authorizer
+  ]
+}
+
+resource "aws_api_gateway_integration" "accreditation_integration" {
+  rest_api_id             = aws_api_gateway_rest_api.api.id
+  resource_id             = aws_api_gateway_resource.accreditation_resource.id
+  http_method             = aws_api_gateway_method.accreditation_method.http_method
+  integration_http_method = "POST"
+  type                    = "AWS_PROXY"
+  uri                     = aws_lambda_function.accreditation_handler.invoke_arn
 }
 
 resource "aws_api_gateway_method" "card_transaction_method" {
@@ -359,6 +386,8 @@ resource "aws_api_gateway_deployment" "api_deployment" {
   depends_on = [
     aws_api_gateway_method.card_transaction_method,
     aws_api_gateway_integration.card_transaction_integration,
+    aws_api_gateway_method.accreditation_method,
+    aws_api_gateway_integration.accreditation_integration,
     aws_api_gateway_method.auth_method,
     aws_api_gateway_integration.auth_integration,
     aws_api_gateway_method.get_exchange_method,
